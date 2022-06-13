@@ -6,4 +6,8 @@ from pydantic import BaseModel
 class PostModel(BaseModel):
     title: str
     body: str
-    user_id: str
+    userId: int
+
+
+class UpdatedPost(PostModel):
+    pass
