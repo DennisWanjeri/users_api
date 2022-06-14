@@ -8,5 +8,8 @@ class Settings(BaseSettings):
     database_name: str = "users_api"
     database_username: str = "postgres"
 
+    class Config:
+        env_file = ".env"
+
 
 settings = Settings()
