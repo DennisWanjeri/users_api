@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 import requests
@@ -13,20 +14,46 @@ router = APIRouter(
     tags=['Posts']
 )
 
+# verify if the record exists in the database
+# if it doesnt exist post it into the database
+
 
 @router.get('/')
-def get_posts():
+def database_sync(db: Session = Depends(get_db), limit: int = 10, skip: int = 0, search: Optional[str] = ""):
     response = requests.get(posts_url).json()
-    return response
+    for item in response:
+        item_id = item['id']
+        post_query = db.query(models.Post).filter(models.Post.id == item_id)
+        post = post_query.first()
+        if not post:
+            new_post = models.Post(
+                id=item['id'], userId=item['userId'], title=item['title'], body=item['body'])
+            db.add(new_post)
+            db.commit()
+    posts = db.query(models.Post).filter(
+        models.Post.title.contains(search)).limit(limit).offset(skip).all()
+    return posts
 
 
 @router.get('/{id}')
-def get_post_by_id(id: int):
-    response = requests.get(posts_url).json()
-    for item in response:
-        if id == item['id']:
-            return item
-    return {"message": "post not found"}
+def get_post_by_id(id: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == id).first()
+    if not post:
+        response = requests.get(posts_url).json()
+        for item in response:
+            if item['id'] == id:
+                post = item
+                print(item)
+                new_post = models.Post(
+                    id=item['id'], userId=item['userId'], body=item['body'], title=item['title'])
+                db.add(new_post)
+                db.commit()
+                db.refresh(new_post)
+                return new_post
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"post with id: {id} not found")
+    return post
 
 
 @router.post('/')
@@ -40,8 +67,10 @@ def add_post(post: PostModel, db: Session = Depends(get_db)):
     if not correct_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"user of id: {post.userId} was not found")
-
-    new_post = models.Post(**post.dict())
+    obj = db.query(models.Post).order_by(models.Post.id.desc()).first()
+    last_id = obj.id + 1
+    new_post = models.Post(id=last_id,
+                           userId=post.userId, body=post.body, title=post.title)
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
