@@ -21,5 +21,5 @@ The API is also documented and can be tested using a front-end client that accom
 6. On the browser run http://127.0.0.1:8000/docs which will reveal the documentation and the simple client-end application
 
 ## Building the docker image
-Run `sudo docker build -t fastapi .`
+Run `sudo docker build -t users_api .`
 To run the docker image `sudo docker compose -f docker-compose-dev.yml up`
