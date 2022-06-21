@@ -1,0 +1,30 @@
+"version": "3"
+services:
+  api:
+    build: .
+    depends_on:
+      - postgres
+    ports:
+      - 8000:8000
+    volumes:
+      - ./:/usr/src/app:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      #nv_file:
+      #- ./env
+    environment:
+      - DATABASE_HOSTNAME=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_PASSWORD=secure123
+      - DATABASE_NAME=users_api
+      - DATABASE_USERNAME=postgres
+
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=secure123
+      - POSTGRES_DB=users_api
+
+    volumes:
+      - postgres_db:/var/lib/postgresql/data
+volumes:
+  postgres_db:
